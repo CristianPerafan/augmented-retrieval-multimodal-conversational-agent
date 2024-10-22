@@ -4,7 +4,8 @@ from fastapi import FastAPI, UploadFile, File, HTTPException,status
 from fastapi.params import Form
 from langchain_core.documents import Document
 
-from src.schemas.request import QueryPDFAgentRequest, SetUpPDFAgentRequest
+from src.csv_agent import CSVAgent
+from src.schemas.request import QueryPDFAgentRequest
 from src.pdf_agent import PDFAgent
 from src.utils.file_processor import load_pdfs, chunk_text
 
