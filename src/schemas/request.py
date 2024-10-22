@@ -7,3 +7,6 @@ class QueryPDFAgentRequest(BaseModel):
 
 class SetUpPDFAgentRequest(BaseModel):
     initial_prompt: str
+
+class QueryCSVRequest(BaseModel):
+    question: str

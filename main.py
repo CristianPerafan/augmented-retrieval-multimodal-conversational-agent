@@ -11,7 +11,8 @@ from src.utils.file_processor import load_pdfs, chunk_text
 
 
 
-pdf_agent = PDFAgent(local_agent=False, use_refinement=False)
+pdf_agent = PDFAgent(local_agent=True, use_refinement=False)
+csv_agent = CSVAgent(local_agent=False)
 
 
 
@@ -42,7 +43,7 @@ def set_up_pdf_agent(files: List[UploadFile] = File(...), task_description: str 
     except Exception as e:
         return HTTPException(status_code=500, detail=str(e))
 
-@app.get("/configure-session-pdf-agent")
+@app.get("/configure-session-pdf-agent", response_model=str)
 def configure_session_pdf_agent():
     try:
         session_id = pdf_agent.configure_session()
@@ -55,7 +56,7 @@ def query_pdf_agent(req: QueryPDFAgentRequest):
     try:
         if not pdf_agent.verify_session_history_exists(req.session_id):
             return  HTTPException(status_code=400, detail="Session history does not exist")
-        response,resources = pdf_agent.query(req.question, req.session_id)
+        response = pdf_agent.query(req.question, req.session_id)
         return {"response": response}
     except Exception as e:
         return HTTPException(status_code=500, detail=str(e))
