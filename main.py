@@ -88,6 +88,14 @@ def configure_session_pdf_agent():
     except Exception as e:
         return HTTPException(status_code=500, detail=str(e))
 
+@app.get("/configure-session-csv-agent", response_model=str)
+def configure_session_csv_agent():
+    try:
+        session_id = csv_agent.configure_session()
+        return {"session_id": session_id}
+    except Exception as e:
+        return HTTPException(status_code=500, detail=str(e))
+
 @app.post("/query-pdf-agent")
 def query_pdf_agent(req: QueryPDFAgentRequest):
     try:
