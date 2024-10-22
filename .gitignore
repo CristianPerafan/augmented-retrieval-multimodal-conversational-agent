@@ -14,3 +14,6 @@ chroma/
 
 # Data
 data/pdf/*.pdf
+
+# Env files
+.env

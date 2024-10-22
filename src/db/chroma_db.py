@@ -15,7 +15,10 @@ def save_to_chroma(chunks: list[Document],embedding_model):
         embedding_model: embedding model
     """
     if os.path.exists(CHROMA_PATH):
-        shutil.rmtree(CHROMA_PATH)
+        try:
+            shutil.rmtree(CHROMA_PATH)
+        except Exception as e:
+            print(f"Error al eliminar {CHROMA_PATH}: {e}")
 
     db = Chroma.from_documents(
         chunks,
