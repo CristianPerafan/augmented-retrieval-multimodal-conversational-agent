@@ -2,7 +2,8 @@ import uuid
 import os
 
 from dotenv import load_dotenv
-from langchain_community.chat_models import ChatOpenAI
+from langchain_community.callbacks import get_openai_callback
+from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory
@@ -79,8 +80,8 @@ class PDFAgent:
 
         else:
             self.llm_model = ChatOpenAI(
-                model="gpt-3.5-turbo:latest"
-
+                model="gpt-3.5-turbo-0125",
+                temperature=0
             )
 
         runnable = prompt | self.llm_model
@@ -159,14 +160,34 @@ class PDFAgent:
 
         context = "\n\n---\n\n".join([doc.page_content for doc, _score in docs])
 
-        response = self.runnable_with_history.invoke(
-            {
-                "context": context,
-                "question": question,
-                "task_description": self.task_description,
-            },
-            config={"configurable": {"session_id": session_id}},
-        )
+        if self.local_agent:
+            response = self.runnable_with_history.invoke(
+                {
+                    "context": context,
+                    "question": question,
+                    "task_description": self.task_description,
+                },
+                config={"configurable": {"session_id": session_id}},
+            )
+        else:
+            with get_openai_callback() as cb:
+                response = self.runnable_with_history.invoke(
+                    {
+                        "context": context,
+                        "question": question,
+                        "task_description": self.task_description,
+                    },
+                    config={"configurable": {"session_id": session_id}},
+                    callback=cb,
+                )
+
+                print(f"Total Tokens: {cb.total_tokens}")
+                print(f"Prompt Tokens: {cb.prompt_tokens}")
+                print(f"Completion Tokens: {cb.completion_tokens}")
+                print(f"Total Cost (USD): ${cb.total_cost}")
+
+                response = response.content
+
 
         history.add_ai_message(response)
 
@@ -174,7 +195,7 @@ class PDFAgent:
 
         formatted_response = f"Response: {response}\nSources:{resources}"
 
-        return formatted_response
+        return response, resources
 
     def configure_session(self):
         # Generate a session ID with UUID
