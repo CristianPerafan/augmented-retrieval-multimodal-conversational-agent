@@ -7,3 +7,10 @@ venv/
 # IDE'S
 .idea/
 .vscode/
+
+
+# Database
+chroma/
+
+# Data
+data/pdf/*.pdf

@@ -7,18 +7,15 @@ from langchain_ollama import OllamaEmbeddings
 
 
 CHROMA_PATH = "chroma"
-def save_to_chroma(chunks: list[Document]):
+def save_to_chroma(chunks: list[Document],embedding_model):
     """
     Save chunks to the chroma database
     Args:
         chunks (list[Document]): list of chunks
+        embedding_model: embedding model
     """
     if os.path.exists(CHROMA_PATH):
         shutil.rmtree(CHROMA_PATH)
-
-    embedding_model = OllamaEmbeddings(
-        model="nomic-embed-text:latest"
-    )
 
     db = Chroma.from_documents(
         chunks,

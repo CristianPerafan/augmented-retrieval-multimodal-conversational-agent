@@ -1,5 +1,9 @@
 from pydantic import BaseModel
 
 
-class QueryRequest(BaseModel):
-    query: str
+class QueryPDFAgentRequest(BaseModel):
+    question: str
+    session_id: str
+
+class SetUpPDFAgentRequest(BaseModel):
+    initial_prompt: str
