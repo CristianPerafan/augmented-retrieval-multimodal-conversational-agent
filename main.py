@@ -17,7 +17,7 @@ from src.utils.file_processor import load_pdfs, chunk_text
 
 
 pdf_agent = PDFAgent(local_agent=True, use_refinement=False)
-csv_agent = CSVAgent(local_agent=False)
+csv_agent = CSVAgent()
 
 
 
@@ -35,17 +35,28 @@ def upload_csv(files: List[UploadFile] = File(...)):
             file_location = f"data/csv/{file.filename}"
             db_file_name = os.path.splitext(file.filename)[0] + ".db"
             db_file_path = os.path.join(csv_agent.db_path, db_file_name)
-            with open(file_location, "wb") as f:
-                f.write(file.file.read())
-            data = pd.read_csv(file_location)
-            conn = sqlite3.connect(db_file_path)
-            data.to_sql('data', conn, if_exists='replace', index=False)
-            conn.close()
-            csv_agent.set_up_db_chain(db_file_name)
-        return {"message": "Archivo CSV subido y convertido exitosamente a base de datos.", "db_path": db_file_path}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al procesar el archivo: {str(e)}")
 
+            if os.path.exists(db_file_path):
+                print(f"La base de datos {db_file_name} ya existe. Saltando conversión.")
+            else:
+                
+                with open(file_location, "wb") as f:
+                    f.write(file.file.read())
+
+                data = pd.read_csv(file_location)
+                conn = sqlite3.connect(db_file_path)
+                data.to_sql('data', conn, if_exists='replace', index=False)
+
+                conn.close()
+                print(f"Archivo CSV guardado y convertido a base de datos: {db_file_name}")
+
+            csv_agent.set_up_db_chain(db_file_name)            
+
+        return {"message": "Archivo(s) procesado(s) correctamente.", "db_path": db_file_path}
+
+    except Exception as e:
+        print(f"Error al procesar el archivo: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al procesar el archivo: {str(e)}")
 
 @app.post("/query-csv")
 def query_csv(req: QueryCSVRequest):
