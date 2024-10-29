@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from langchain_community.callbacks import get_openai_callback
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableWithMessageHistory
@@ -35,6 +35,7 @@ query_refinement_prompt = ChatPromptTemplate.from_template(QUERY_REFINEMENT_PROM
 #Models
 LLM_MODEL_NAME = os.getenv("OLLAMA_LLM_MODEL")
 EMBEDDING_MODEL_NAME = os.getenv("OLLAMA_EMBED_MODEL")
+OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBED_MODEL")
 
 class PDFAgent:
     def __init__(self, local_agent: bool, use_refinement: bool = False):
@@ -68,21 +69,26 @@ class PDFAgent:
 
     def set_up_models(self):
 
-        embedding_model = OllamaEmbeddings(
-            model=EMBEDDING_MODEL_NAME
-        )
-        self.embedding_model = embedding_model
+
 
         if self.local_agent:
             self.llm_model = OllamaLLM(
                 model=LLM_MODEL_NAME
             )
+            embedding_model = OllamaEmbeddings(
+                model=EMBEDDING_MODEL_NAME
+            )
+            self.embedding_model = embedding_model
 
         else:
             self.llm_model = ChatOpenAI(
                 model="gpt-3.5-turbo-0125",
                 temperature=0
             )
+            embedding_model = OpenAIEmbeddings(
+                model=OPENAI_EMBEDDING_MODEL
+            )
+            self.embedding_model = embedding_model
 
         runnable = prompt | self.llm_model
 
@@ -148,15 +154,7 @@ class PDFAgent:
 
         history.add_user_message(question)
 
-        if self.use_refinement:
-
-            refinement_prompt = query_refinement_prompt.format(task_description=self.task_description, question=question)
-
-            question = self.refinement_llm_model.invoke(refinement_prompt)
-
         docs = self.vector_db.similarity_search_with_score(question)
-
-        print(docs)
 
         context = "\n\n---\n\n".join([doc.page_content for doc, _score in docs])
 
@@ -170,24 +168,16 @@ class PDFAgent:
                 config={"configurable": {"session_id": session_id}},
             )
         else:
-            with get_openai_callback() as cb:
-                response = self.runnable_with_history.invoke(
-                    {
-                        "context": context,
-                        "question": question,
-                        "task_description": self.task_description,
-                    },
-                    config={"configurable": {"session_id": session_id}},
-                    callback=cb,
-                )
+            response = self.runnable_with_history.invoke(
+                {
+                    "context": context,
+                    "question": question,
+                    "task_description": self.task_description,
+                },
+                config={"configurable": {"session_id": session_id}}
+            )
 
-                print(f"Total Tokens: {cb.total_tokens}")
-                print(f"Prompt Tokens: {cb.prompt_tokens}")
-                print(f"Completion Tokens: {cb.completion_tokens}")
-                print(f"Total Cost (USD): ${cb.total_cost}")
-
-                response = response.content
-
+            response = response.content
 
         history.add_ai_message(response)
 
